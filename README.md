@@ -11,9 +11,17 @@ git clone https://github.com/eelcohn/home-assistant-ddwrt ddwrt
 
 ### Setup and configuration
 You can either setup this component using the UI Integrations page, or using the `configuration.yaml` file:
+
+##### Simple configuration:
 ```
 ddwrt:
   - host: !secret ddwrt_hostname
+```
+##### Advanced configuration:
+```
+ddwrt:
+  - host: !secret ddwrt_hostname
+    name: My DD-WRT Router
     username: !secret ddwrt_username
     password: !secret ddwrt_password
     ssl: true
