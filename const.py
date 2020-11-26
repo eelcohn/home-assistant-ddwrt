@@ -4,363 +4,531 @@ from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_CONNECTIVITY,
 )
 from homeassistant.const import (
+    ATTR_DEVICE_CLASS,
+    ATTR_ICON,
+    ATTR_NAME,
+    ATTR_UNIT_OF_MEASUREMENT,
+    DATA_KILOBYTES,
+    DATA_MEGABYTES,
+    DATA_RATE_MEGABITS_PER_SECOND,
     DEVICE_CLASS_SIGNAL_STRENGTH,
     DEVICE_CLASS_TEMPERATURE,
+    LENGTH_METERS,
     TEMP_CELSIUS,
+    TIME_MICROSECONDS,
+    TIME_MINUTES,
+    VOLT,
 )
+
+_VERSION = "1.1.0"
 
 ATTRIBUTION = "Data provided by DD-WRT router"
 
 CONF_BINARY_SENSOR = "binary_sensor"
+CONF_CAMERA = "camera"
 CONF_DEVICE_TRACKER = "device_tracker"
 CONF_SENSOR = "sensor"
-CONF_TRACK_ARP = "arp"
-CONF_TRACK_DHCP = "dhcp"
-CONF_TRACK_PPPOE = "pppoe"
-CONF_TRACK_PPTP = "pptp"
-CONF_TRACK_WDS = "wds"
-CONF_TRACK_WIRELESS = "wireless"
+CONF_TRACK_ARP = "arp_clients"
+CONF_TRACK_DHCP = "dhcp_clients"
+CONF_TRACK_PPPOE = "pppoe_clients"
+CONF_TRACK_PPTP = "pptp_clients"
+CONF_TRACK_WDS = "wds_clients"
+CONF_TRACK_WIRELESS = "wireless_clients"
 
-DDWRT_MANUFACTURERURL = "https://www.dd-wrt.com"
+COMPONENTS = (
+    CONF_BINARY_SENSOR,
+    CONF_CAMERA,
+    CONF_DEVICE_TRACKER,
+    CONF_SENSOR
+)
 
-DEFAULT_SSL = False
-DEFAULT_VERIFY_SSL = True
+DDWRT_UPNP_MANUFACTURER_URL = "https://www.dd-wrt.com"
+
+DEFAULT_DEVICE_NAME = "DD-WRT router"
+
+DEFAULT_SSL = True
+DEFAULT_VERIFY_SSL = False
 DEFAULT_WIRELESS_ONLY = True
 
 DOMAIN = "ddwrt"
-DATA_KEY = DOMAIN
-DEFAULT_NAME = "ddwrt"
+DATA_LISTENER = "listener"
 
+MIN_SCAN_INTERVAL   = timedelta(seconds=30)
 SCAN_INTERVAL_ABOUT = timedelta(hours=6)
-SCAN_INTERVAL_DATA = timedelta(seconds=60)
+SCAN_INTERVAL_DATA  = timedelta(seconds=60)
 
-SOURCE_TYPE_ARP = "arp"
-SOURCE_TYPE_DHCP = "dhcp"
-SOURCE_TYPE_PPPOE = "pppoe"
-SOURCE_TYPE_PPTP = "pptp"
-SOURCE_TYPE_WDS = "wds"
-SOURCE_TYPE_WIRELESS = "wireless"
+TOPIC_DATA_UPDATE = f"{DOMAIN}_data_update"
 
-_NAME = "name"
-_UNIT = "unit"
-_ICON = "icon"
-_ICON_OFF = "icon_off"
-_CLASS = "class"
+# Define all available services
+SERVICE_RUN_COMMAND          = "run_command"
+SERVICE_REBOOT               = "reboot"
+SERVICE_UPNP_DELETE          = "upnp_delete"
+SERVICE_WAKE_ON_LAN          = "wake_on_lan"
+SERVICE_WAN_DHCP_RELEASE     = "wan_dhcp_release"
+SERVICE_WAN_DHCP_RENEW       = "wan_dhcp_renew"
+SERVICE_WAN_PPPOE_CONNECT    = "wan_pppoe_connect"
+SERVICE_WAN_PPPOE_DISCONNECT = "wan_pppoe_disconnect"
+
+SERVICES = {
+    SERVICE_REBOOT,
+    SERVICE_RUN_COMMAND,
+    SERVICE_UPNP_DELETE,
+    SERVICE_WAKE_ON_LAN,
+    SERVICE_WAN_DHCP_RELEASE,
+    SERVICE_WAN_DHCP_RENEW,
+    SERVICE_WAN_PPPOE_CONNECT,
+    SERVICE_WAN_PPPOE_DISCONNECT,
+}
+
+# Define attributes
+ATTR_ICON_OFF = "icon_off"
+ATTR_WIRED    = "wired"
+
+# Define units
+DECIBEL_MILLIWATTS = "dBm"
+FREQUENCY_MEGAHERTZ = "MHz"
+
+# Define all available binary_sensors, cameras, device_trackers and sensors
+BINARY_SENSORS = {
+    "wan_connected": {
+        ATTR_NAME: "WAN connected",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wan",
+        ATTR_ICON_OFF: "mdi:alert-circle-outline",
+        ATTR_DEVICE_CLASS: DEVICE_CLASS_CONNECTIVITY,
+    },
+    "wl_radio": {
+        ATTR_NAME: "WiFi radio",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_ICON_OFF: "mdi:wifi-off",
+        ATTR_DEVICE_CLASS: DEVICE_CLASS_CONNECTIVITY,
+    },
+}
+
+CAMERAS = {
+    "traffic": {
+        ATTR_NAME: "Monthly traffic",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:swap-vertical-bold",
+        ATTR_DEVICE_CLASS: None,
+    },
+}
+
+DEVICE_TRACKERS = {
+    CONF_TRACK_ARP: {
+        ATTR_NAME: "ARP clients",
+        ATTR_ICON: "mdi:network",
+        ATTR_WIRED: True,
+    },
+    CONF_TRACK_DHCP: {
+        ATTR_NAME: "DHCP clients",
+        ATTR_ICON: "mdi:network",
+        ATTR_WIRED: True,
+    },
+    CONF_TRACK_PPPOE: {
+        ATTR_NAME: "PPPoE clients",
+        ATTR_ICON: "mdi:network",
+        ATTR_WIRED: True,
+    },
+    CONF_TRACK_PPTP: {
+        ATTR_NAME: "PPTP clients",
+        ATTR_ICON: "mdi:network",
+        ATTR_WIRED: True,
+    },
+    CONF_TRACK_WDS: {
+        ATTR_NAME: "WDS clients",
+        ATTR_ICON: "mdi:access-point-network",
+        ATTR_WIRED: False,
+    },
+    CONF_TRACK_WIRELESS: {
+        ATTR_NAME: "WiFi clients",
+        ATTR_ICON: "mdi:wireless",
+        ATTR_WIRED: False,
+    },
+}
 
 SENSORS = {
     "clk_freq": {
-        _NAME: "Clock frequency",
-        _UNIT: "MHz",
-        _ICON: "mdi:metronome",
-        _CLASS: None,
+        ATTR_NAME: "Clock frequency",
+        ATTR_UNIT_OF_MEASUREMENT: FREQUENCY_MEGAHERTZ,
+        ATTR_ICON: "mdi:metronome",
+        ATTR_DEVICE_CLASS: None,
     },
     "cpu_temp": {
-        _NAME: "Temperature",
-        _UNIT: TEMP_CELSIUS,
-        _ICON: "mdi:thermometer",
-        _CLASS: DEVICE_CLASS_TEMPERATURE,
+        ATTR_NAME: "Temperature",
+        ATTR_UNIT_OF_MEASUREMENT: TEMP_CELSIUS,
+        ATTR_ICON: "mdi:thermometer",
+        ATTR_DEVICE_CLASS: DEVICE_CLASS_TEMPERATURE,
     },
     "ddns_status": {
-        _NAME: "DDNS status",
-        _UNIT: None,
-        _ICON: "mdi:dns",
-        _CLASS: None,
+        ATTR_NAME: "DDNS status",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
     },
-    "firmware_build": {
-        _NAME: "Firmware build",
-        _UNIT: None,
-        _ICON: "mdi:wrench",
-        _CLASS: None,
+    "sw_build": {
+        ATTR_NAME: "Firmware build",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wrench",
+        ATTR_DEVICE_CLASS: None,
     },
-    "firmware_date": {
-        _NAME: "Firmware date",
-        _UNIT: None,
-        _ICON: "mdi:wrench",
-        _CLASS: None,
+    "sw_date": {
+        ATTR_NAME: "Firmware date",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wrench",
+        ATTR_DEVICE_CLASS: None,
     },
-    "firmware_version": {
-        _NAME: "Firmware version",
-        _UNIT: None,
-        _ICON: "mdi:wrench",
-        _CLASS: None,
+    "sw_version": {
+        ATTR_NAME: "Firmware version",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wrench",
+        ATTR_DEVICE_CLASS: None,
     },
     "ip_connections": {
-        _NAME: "LAN IP connections",
-        _UNIT: None,
-        _ICON: "mdi:format-list-bulleted",
-        _CLASS: None,
+        ATTR_NAME: "LAN IP connections",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:format-list-bulleted",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_dhcp_start": {
-        _NAME: "LAN DHCP start address",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "LAN DHCP start address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_dhcp_end": {
-        _NAME: "LAN DHCP end address",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "LAN DHCP end address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_dhcp_lease_time": {
-        _NAME: "LAN DHCP lease time",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "LAN DHCP lease time",
+        ATTR_UNIT_OF_MEASUREMENT: TIME_MINUTES,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_dns": {
-        _NAME: "LAN DNS address",
-        _UNIT: None,
-        _ICON: "mdi:dns",
-        _CLASS: None,
+        ATTR_NAME: "LAN DNS address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_gateway": {
-        _NAME: "LAN gateway",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "LAN gateway",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_ipaddr": {
-        _NAME: "LAN IP address",
-        _UNIT: None,
-        _ICON: "mdi:ip",
-        _CLASS: None,
+        ATTR_NAME: "LAN IP address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_mac": {
-        _NAME: "LAN IP address",
-        _UNIT: None,
-        _ICON: "mdi:network",
-        _CLASS: None,
+        ATTR_NAME: "LAN MAC address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:network",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_netmask": {
-        _NAME: "LAN network mask",
-        _UNIT: None,
-        _ICON: "mdi:ip",
-        _CLASS: None,
+        ATTR_NAME: "LAN network mask",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip",
+        ATTR_DEVICE_CLASS: None,
     },
     "lan_proto": {
-        _NAME: "LAN protocol",
-        _UNIT: None,
-        _ICON: "mdi:network-router",
-        _CLASS: None,
+        ATTR_NAME: "LAN protocol",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:router-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "load_average1": {
-        _NAME: "Load average last minute",
-        _UNIT: None,
-        _ICON: "mdi:speedometer",
-        _CLASS: None,
+        ATTR_NAME: "Load average last minute",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:speedometer",
+        ATTR_DEVICE_CLASS: None,
     },
     "load_average5": {
-        _NAME: "Load average last 5 minutes",
-        _UNIT: None,
-        _ICON: "mdi:speedometer",
-        _CLASS: None,
+        ATTR_NAME: "Load average last 5 minutes",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:speedometer",
+        ATTR_DEVICE_CLASS: None,
     },
     "load_average15": {
-        _NAME: "Load average last 15 minutes",
-        _UNIT: None,
-        _ICON: "mdi:speedometer",
-        _CLASS: None,
+        ATTR_NAME: "Load average last 15 minutes",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:speedometer",
+        ATTR_DEVICE_CLASS: None,
     },
     "network_bridges": {
-        _NAME: "Network bridges",
-        _UNIT: None,
-        _ICON: "mdi:bridge",
-        _CLASS: None,
+        ATTR_NAME: "Network bridges",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:bridge",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "nvram_used": {
+        ATTR_NAME: "NVRAM Used",
+        ATTR_UNIT_OF_MEASUREMENT: DATA_KILOBYTES,
+        ATTR_ICON: "mdi:memory",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "nvram_total": {
+        ATTR_NAME: "NVRAM Total",
+        ATTR_UNIT_OF_MEASUREMENT: DATA_KILOBYTES,
+        ATTR_ICON: "mdi:memory",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "router_manufacturer": {
+        ATTR_NAME: "Router manufacturer",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:router",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "router_model": {
+        ATTR_NAME: "Router model",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:router",
+        ATTR_DEVICE_CLASS: None,
     },
     "router_time": {
-        _NAME: "Router time",
-        _UNIT: None,
-        _ICON: "mdi:clock-outline",
-        _CLASS: None,
+        ATTR_NAME: "Router time",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:clock-outline",
+        ATTR_DEVICE_CLASS: None,
     },
     "uptime": {
-        _NAME: "Uptime",
-        _UNIT: None,
-        _ICON: "mdi:clock-outline",
-        _CLASS: None,
+        ATTR_NAME: "Uptime",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:clock-outline",
+        ATTR_DEVICE_CLASS: None,
     },
     "voltage": {
-        _NAME: "Voltage",
-        _UNIT: "V",
-        _ICON: "mdi:current-dc",
-        _CLASS: None,
+        ATTR_NAME: "Voltage",
+        ATTR_UNIT_OF_MEASUREMENT: VOLT,
+        ATTR_ICON: "mdi:current-dc",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_3g_signal": {
-        _NAME: "WAN 3G signal strength",
-        _UNIT: "DBm",
-        _ICON: "mdi:signal-3g",
-        _CLASS: DEVICE_CLASS_SIGNAL_STRENGTH,
+        ATTR_NAME: "WAN 3G signal strength",
+        ATTR_UNIT_OF_MEASUREMENT: DECIBEL_MILLIWATTS,
+        ATTR_ICON: "mdi:signal-3g",
+        ATTR_DEVICE_CLASS: DEVICE_CLASS_SIGNAL_STRENGTH,
     },
     "wan_dhcp_remaining": {
-        _NAME: "WAN DHCP remaining",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "WAN DHCP remaining",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_dns0": {
-        _NAME: "WAN DNS address 0",
-        _UNIT: None,
-        _ICON: "mdi:dns",
-        _CLASS: None,
+        ATTR_NAME: "WAN DNS address 0",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_dns1": {
-        _NAME: "WAN DNS address 1",
-        _UNIT: None,
-        _ICON: "mdi:dns",
-        _CLASS: None,
+        ATTR_NAME: "WAN DNS address 1",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_dns2": {
-        _NAME: "WAN DNS address 2",
-        _UNIT: None,
-        _ICON: "mdi:dns",
-        _CLASS: None,
+        ATTR_NAME: "WAN DNS address 2",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wan_dns3": {
+        ATTR_NAME: "WAN DNS address 3",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wan_dns4": {
+        ATTR_NAME: "WAN DNS address 4",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wan_dns5": {
+        ATTR_NAME: "WAN DNS address 5",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:dns",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_gateway": {
-        _NAME: "WAN gateway address",
-        _UNIT: None,
-        _ICON: "mdi:wan",
-        _CLASS: None,
+        ATTR_NAME: "WAN gateway address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wan",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_ipaddr": {
-        _NAME: "WAN IP address",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "WAN IP address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_ip6addr": {
-        _NAME: "WAN IP6 address",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "WAN IP6 address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_netmask": {
-        _NAME: "WAN network mask",
-        _UNIT: None,
-        _ICON: "mdi:ip-network",
-        _CLASS: None,
+        ATTR_NAME: "WAN network mask",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:ip-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_pppoe_ac_name": {
-        _NAME: "WAN PPPoE access concentrator name",
-        _UNIT: None,
-        _ICON: "mdi:network-router",
-        _CLASS: None,
+        ATTR_NAME: "WAN PPPoE access concentrator name",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:router-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_proto": {
-        _NAME: "WAN protocol",
-        _UNIT: None,
-        _ICON: "mdi:network-router",
-        _CLASS: None,
+        ATTR_NAME: "WAN protocol",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:router-network",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_status": {
-        _NAME: "WAN status",
-        _UNIT: None,
-        _ICON: "mdi:check-network-outline",
-        _CLASS: None,
+        ATTR_NAME: "WAN status",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:check-network-outline",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_traffic_in": {
-        _NAME: "WAN traffic inbound",
-        _UNIT: "MB",
-        _ICON: "mdi:download",
-        _CLASS: None,
+        ATTR_NAME: "WAN traffic inbound",
+        ATTR_UNIT_OF_MEASUREMENT: DATA_MEGABYTES,
+        ATTR_ICON: "mdi:download",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_traffic_out": {
-        _NAME: "WAN traffic outbound",
-        _UNIT: "MB",
-        _ICON: "mdi:upload",
-        _CLASS: None,
+        ATTR_NAME: "WAN traffic outbound",
+        ATTR_UNIT_OF_MEASUREMENT: DATA_MEGABYTES,
+        ATTR_ICON: "mdi:upload",
+        ATTR_DEVICE_CLASS: None,
     },
     "wan_uptime": {
-        _NAME: "WAN uptime",
-        _UNIT: None,
-        _ICON: "mdi:clock-outline",
-        _CLASS: None,
+        ATTR_NAME: "WAN uptime",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:clock-outline",
+        ATTR_DEVICE_CLASS: None,
     },
-    "wl_ack": {
-        _NAME: "wl_ack",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+    "wl_ack_timing": {
+        ATTR_NAME: "Wireless ACK timing",
+        ATTR_UNIT_OF_MEASUREMENT: TIME_MICROSECONDS,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wl_ack_distance": {
+        ATTR_NAME: "Wireless ACK distance",
+        ATTR_UNIT_OF_MEASUREMENT: LENGTH_METERS,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_active": {
-        _NAME: "wl_active",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless network active",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_busy": {
-        _NAME: "wl_busy",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "wl_busy",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_channel": {
-        _NAME: "Wireless channel",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless channel",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_count": {
-        _NAME: "Wireless clients",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless clients",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_mac": {
-        _NAME: "Wireless MAC address",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless MAC address",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_quality": {
-        _NAME: "wl_quality",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "wl_quality",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_rate": {
-        _NAME: "Wireless rate",
-        _UNIT: "Mbps",
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless rate",
+        ATTR_UNIT_OF_MEASUREMENT: DATA_RATE_MEGABITS_PER_SECOND,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wl_rx_packet_error": {
+        ATTR_NAME: "Wireless packets received errors",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wl_rx_packet_ok": {
+        ATTR_NAME: "Wireless packets received OK",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_ssid": {
-        _NAME: "Wireless SSID",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless SSID",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wl_tx_packet_error": {
+        ATTR_NAME: "Wireless packets transmitted errors",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
+    },
+    "wl_tx_packet_ok": {
+        ATTR_NAME: "Wireless packets transmitted OK",
+        ATTR_UNIT_OF_MEASUREMENT: None,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
     "wl_xmit": {
-        _NAME: "Wireless transmit power",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _CLASS: None,
+        ATTR_NAME: "Wireless transmit power",
+        ATTR_UNIT_OF_MEASUREMENT: DECIBEL_MILLIWATTS,
+        ATTR_ICON: "mdi:wifi",
+        ATTR_DEVICE_CLASS: None,
     },
 }
 
-BINARY_SENSORS = {
-    "wan_connected": {
-        _NAME: "WAN connected",
-        _UNIT: None,
-        _ICON: "mdi:wan",
-        _ICON_OFF: "mdi:alert-circle-outline",
-        _CLASS: DEVICE_CLASS_CONNECTIVITY,
-    },
-    "wl_radio": {
-        _NAME: "WiFi radio",
-        _UNIT: None,
-        _ICON: "mdi:wifi",
-        _ICON_OFF: "mdi:wifi-off",
-        _CLASS: DEVICE_CLASS_CONNECTIVITY,
-    },
-}
+RESOURCES = []
+RESOURCES.extend(key for key in BINARY_SENSORS)
+RESOURCES.extend(key for key in CAMERAS)
+RESOURCES.extend(key for key in DEVICE_TRACKERS)
+RESOURCES.extend(key for key in SENSORS)
 
-DEVICE_TRACKERS = [
+# Defaults for when no binary_sensors, cameras, device_trackers or sensors were given
+BINARY_SENSOR_DEFAULTS = [
+    "wan_connected",
+]
+
+CAMERA_DEFAULTS = [
+    "traffic",
+]
+
+DEVICE_TRACKER_DEFAULTS = [
     CONF_TRACK_ARP,
     CONF_TRACK_DHCP,
-    CONF_TRACK_PPPOE,
-    CONF_TRACK_PPTP,
-    CONF_TRACK_WDS,
     CONF_TRACK_WIRELESS,
 ]
 
@@ -368,13 +536,12 @@ SENSOR_DEFAULTS = [
     "wan_status",
 ]
 
-BINARY_SENSOR_DEFAULTS = [
+RESOURCES_DEFAULTS = [
     "wan_connected",
-]
-
-DEVICE_TRACKER_DEFAULTS = [
+    "traffic",
     CONF_TRACK_ARP,
     CONF_TRACK_DHCP,
     CONF_TRACK_WIRELESS,
+    "wan_status",
 ]
 
