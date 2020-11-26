@@ -27,6 +27,14 @@ ddwrt:
     ssl: true
     verify_ssl: false
     resources:
+      - arp_clients
+      - dhcp_clients
+      - pppoe_clients
+      - pptp_clients
+      - wds_clients
+      - wireless_clients
+      - wan_connected
+      - wl_radio
       - clk_freq
       - cpu_temp
       - ddns_status
@@ -88,8 +96,6 @@ ddwrt:
       - wl_tx_packet_ok
       - wl_ssid
       - wl_xmit
-      - wan_connected
-      - wl_radio
       - traffic
 ```
 
