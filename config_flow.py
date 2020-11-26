@@ -7,28 +7,36 @@ from urllib.parse import urlparse
 
 from homeassistant import config_entries
 from homeassistant.components.ssdp import (
-    ATTR_MANUFACTURERURL,
-    ATTR_PRESENTATIONURL,
-)
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_USERNAME,
-    CONF_PASSWORD,
-    CONF_SSL,
-    CONF_VERIFY_SSL,
-    CONF_SENSORS,
-    CONF_BINARY_SENSORS,
+    ATTR_UPNP_MANUFACTURER_URL,
+    ATTR_UPNP_PRESENTATION_URL,
 )
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import (
+from . import (
+    ATTR_NAME,
+    BINARY_SENSORS,
+    CAMERAS,
     CONF_DEVICE_TRACKER,
-    DDWRT_MANUFACTURERURL,
-    DATA_KEY,
-    DEFAULT_NAME,
+    CONF_HOST,
+    CONF_NAME,
+    CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_RESOURCES,
+    CONF_SSL,
+    CONF_VERIFY_SSL,
+    CONF_SENSOR,
+    CONF_BINARY_SENSOR,
+    DDWRT_UPNP_MANUFACTURER_URL,
+    DEFAULT_SSL,
+    DEFAULT_VERIFY_SSL,
+    DEVICE_TRACKERS,
     DOMAIN,
+    MIN_SCAN_INTERVAL,
     SCAN_INTERVAL_DATA,
+    SENSORS,
 )
 from .pyddwrt import (
     DDWrt
@@ -39,20 +47,42 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER.debug("config_flow called")
 
 
-@callback
-def configured_instances(hass):
-    """Return a set of configured DD-WRT instances."""
+def _resource_schema_base(selected_resources):
+    """Resource selection schema."""
 
-    if DATA_KEY in hass.data:
-        _LOGGER.debug("config_flow::configured_instances called - returned configured instances")
-        return set(
-            '{0}'.format(
-                entry._host,
-            )
-            for entry in hass.data[DATA_KEY])
-    else:
-        _LOGGER.debug("config_flow::configured_instances called - no instances found")
-        return {}
+    available_resources = {}
+
+    available_resources.update(BINARY_SENSORS.items())
+    available_resources.update(CAMERAS.items())
+    available_resources.update(DEVICE_TRACKERS.items())
+    available_resources.update(SENSORS.items())
+
+    known_available_resources = {
+        sensor_id: sensor[ATTR_NAME]
+        for sensor_id, sensor in BINARY_SENSORS.items()
+        if sensor_id in available_resources
+    }
+    known_available_resources.update({
+        sensor_id: sensor[ATTR_NAME]
+        for sensor_id, sensor in CAMERAS.items()
+        if sensor_id in available_resources
+    })
+    known_available_resources.update({
+        sensor_id: sensor[ATTR_NAME]
+        for sensor_id, sensor in DEVICE_TRACKERS.items()
+        if sensor_id in available_resources
+    })
+    known_available_resources.update({
+        sensor_id: sensor[ATTR_NAME]
+        for sensor_id, sensor in SENSORS.items()
+        if sensor_id in available_resources
+    })
+
+    return {
+        vol.Required(CONF_RESOURCES, default=selected_resources): cv.multi_select(
+            known_available_resources
+        )
+    }
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -68,32 +98,28 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
 
     def __init__(self):
         """Initialize the config flow."""
+
         _LOGGER.debug("DDWRTFlowHandler::__init__ called")
-        pass
 
-    async def _show_integrations_form(self, errors=None):
-        """Show the setup form to the user."""
-
-        _LOGGER.debug("DDWRTFlowHandler::_show_integrations_form called")
-
-        return self.async_show_form(
-            step_id="integrations",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_BINARY_SENSORS, default=True): bool,
-                    vol.Required(CONF_SENSORS, default=True): bool,
-                    vol.Required(CONF_DEVICE_TRACKER, default=True): bool,
-                }
-            ),
-            errors=errors or {},
-        )
+        self.ddwrt_config = {}
+        self.discovery_info = {}
 
     async def async_step_import(self, import_config):
         """Import a config entry from configuration.yaml."""
 
         _LOGGER.debug("DDWRTFlowHandler::async_step_import called %s", import_config)
 
-        return await self.async_step_user(import_config)
+        # Check if already configured
+        await self.async_set_unique_id(import_config[CONF_HOST], raise_on_progress=False)
+        self._abort_if_unique_id_configured()
+
+        title = '{} (configuration.yaml)'.format(import_config[CONF_HOST])
+
+        if import_config[CONF_NAME] is None:
+            import_config.update({CONF_NAME: import_config[CONF_HOST]})
+
+        return self.async_create_entry(title=title, data=import_config)
+
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
@@ -104,15 +130,24 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
 
         if user_input is not None:
 
-            if user_input[CONF_HOST] in configured_instances(self.hass):
-                return self.async_abort(reason="already_configured")
+            # Check if already configured
+            await self.async_set_unique_id(user_input[CONF_HOST], raise_on_progress=False)
+            self._abort_if_unique_id_configured()
+
+            self.ddwrt_config.update(user_input)
+
+            if CONF_NAME not in self.ddwrt_config:
+                self.ddwrt_config.update({CONF_NAME: self.ddwrt_config[CONF_HOST]})
+
+            session = async_get_clientsession(self.hass, verify_ssl=self.ddwrt_config[CONF_VERIFY_SSL])
 
             router = DDWrt(
-                host = user_input[CONF_HOST],
-                username = user_input[CONF_USERNAME],
-                password = user_input[CONF_PASSWORD],
-                protocol = "https" if user_input[CONF_SSL] else "http",
-                verify_ssl = user_input[CONF_VERIFY_SSL],
+                aio_session = session,
+                host = self.ddwrt_config[CONF_HOST],
+                username = self.ddwrt_config[CONF_USERNAME],
+                password = self.ddwrt_config[CONF_PASSWORD],
+                protocol = "https" if self.ddwrt_config[CONF_SSL] else "http",
+                verify_ssl = self.ddwrt_config[CONF_VERIFY_SSL],
             )
 
             try:
@@ -122,7 +157,7 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
             except DDWrt.ExceptionSelfSigned:
                 _LOGGER.debug("DDWRTFlowHandler::async_step_user SelfSigned")
                 errors["base"] = "ssl_selfsigned"
-            except DDWrt.ExceptionConnectionError:
+            except CannotConnect:
                 _LOGGER.debug("DDWRTFlowHandler::async_step_user ConnectionError")
                 errors["base"] = "connection_error"
             except DDWrt.ExceptionAuthenticationError:
@@ -137,8 +172,8 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
             else:
                 _LOGGER.debug("DDWRTFlowHandler::async_step_user update_about_data returned %s", valid_router)
 
-                self.user_step_inpuit = user_input
-                return await self.async_step_integrations(None)
+                self.user_step_input = self.ddwrt_config
+                return await self.async_step_resources()
 
         _LOGGER.debug("DDWRTFlowHandler::async_step_user show setup form")
         return self.async_show_form(
@@ -148,23 +183,33 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
                     vol.Required(CONF_HOST): str,
                     vol.Optional(CONF_USERNAME): str,
                     vol.Optional(CONF_PASSWORD): str,
-                    vol.Required(CONF_SSL, default=True): bool,
-                    vol.Required(CONF_VERIFY_SSL, default=True): bool,
+                    vol.Required(CONF_SSL, default=DEFAULT_SSL): bool,
+                    vol.Required(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): bool,
                 }
             ),
             errors=errors,
         )
 
 
-    async def async_step_integrations(self, user_input=None):
-        """Handle the start of the config flow."""
+    async def async_step_resources(self, user_input=None):
+        """Handle the picking the resources."""
 
-        _LOGGER.debug("DDWRTFlowHandler::async_step_integrations called %s", user_input)
+        _LOGGER.debug("DDWRTFlowHandler::async_step_resources called %s", user_input)
 
-        if not user_input:
-            return await self._show_integrations_form(user_input)
+        if user_input is None:
+            return self.async_show_form(
+                step_id="resources",
+                data_schema=vol.Schema(
+                    _resource_schema_base([])
+                ),
+            )
 
-        return self.async_create_entry(title=DEFAULT_NAME, data=user_input)
+        self.ddwrt_config.update(user_input)
+
+        return self.async_create_entry(
+            title=self.ddwrt_config[CONF_NAME],
+            data=self.ddwrt_config
+        )
 
 
     async def async_step_ssdp(self, discovery_info):
@@ -172,15 +217,16 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
 
         _LOGGER.debug("DDWRTFlowHandler::async_step_ssdp called. discoveryinfo=%s", discovery_info)
 
-        if discovery_info[ATTR_MANUFACTURERURL] != DDWRT_MANUFACTURERURL:
+        if discovery_info[ATTR_UPNP_MANUFACTURER_URL] != DDWRT_UPNP_MANUFACTURER_URL:
             return self.async_abort(reason="not_ddwrt")
 
-        url = urlparse(discovery_info[ATTR_PRESENTATIONURL])
+        url = urlparse(discovery_info[ATTR_UPNP_PRESENTATION_URL])
         host = url.netloc
         ssl = True if url.scheme == "https" else False
 
-        if host in configured_instances(self.hass):
-            return self.async_abort(reason="already_configured")
+        # Check if already configured
+        await self.async_set_unique_id(user_input[CONF_HOST], raise_on_progress=False)
+        self._abort_if_unique_id_configured()
 
         model = discovery_info[ATTR_MODEL_NAME]
 
@@ -190,4 +236,48 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
         }
 
         return await self._async_show_user_form(user_input)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler(config_entry)
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle a option flow for dd-wrt."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry):
+        """Initialize options flow."""
+
+        _LOGGER.debug("OptionsFlowHandler::__init__ called. config_entry.options=%s data=%s", config_entry.options, config_entry.data)
+
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        """Handle options flow."""
+
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        data_schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_SCAN_INTERVAL,
+                    default=self.config_entry.data.get(
+                        CONF_SCAN_INTERVAL,
+                        SCAN_INTERVAL_DATA,
+                    ),
+#                ): int,
+                ): cv.time_period,
+#                _resource_schema_base(
+#                    self.config_entry.data['resources']
+#                )
+            }
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=data_schema
+        )
 

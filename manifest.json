@@ -1,18 +1,17 @@
 {
-  "codeowners": [
-    "@eelcohn"
-  ],
-  "config_flow": true,
-  "dependencies": [],
-  "documentation": "https://www.home-assistant.io/integrations/ddwrt",
-  "domain": "ddwrt",
-  "name": "DD-WRT",
-  "requirements": [
-  ],
-  "ssdp" :[
-    {
-      "deviceType": "urn:schemas-upnp.org:device:InternetGatewayDevice:1",
-      "manufacturer": "DD-WRT"
-    }
-  ]
+	"codeowners": [
+		"@eelcohn"
+	],
+	"config_flow": true,
+	"dependencies": [],
+	"documentation": "https://www.home-assistant.io/integrations/ddwrt",
+	"domain": "ddwrt",
+	"name": "DD-WRT",
+	"requirements": [],
+	"ssdp" :[
+		{
+			"deviceType": "urn:schemas-upnp.org:device:InternetGatewayDevice:1",
+			"manufacturer": "DD-WRT"
+		}
+	]
 }

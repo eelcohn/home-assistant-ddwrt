@@ -1,0 +1,15 @@
+v1.1.0:
+* Added configuration by GUI entity register (config_flow)
+* Added detection of unhandled missing and/or extra fields in DD-WRT data
+* Renamed firmware_version to sw_version
+* Renamed firmware_build to sw_build
+* Renamed firmware_date to sw_date
+* Moved from @Throttle to async_track_time_interval()
+* Fixed 'Detected I/O inside the event loop' warning
+* Renamed .translations to translations
+* Added unique ID's for all entities
+* Added device configuration options
+* Added version string to const.py
+
+v1.0.0:
+* Initial public release

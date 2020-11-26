@@ -2,72 +2,92 @@
 
 import logging
 
-from homeassistant.components.binary_sensor import BinarySensorDevice
+from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from . import (
     ATTR_ATTRIBUTION,
+    ATTR_DEVICE_CLASS,
+    ATTR_FRIENDLY_NAME,
+    ATTR_ICON,
+    ATTR_ICON_OFF,
+    ATTR_NAME,
     ATTRIBUTION,
-    DATA_KEY,
     BINARY_SENSORS,
-    _NAME,
-    _ICON,
-    _ICON_OFF,
-    _CLASS,
+    CONF_RESOURCES,
+    CONF_HOST,
+    CONF_NAME,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the ddwrt binary sensors."""
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up the DD-WRT binary sensor."""
 
-    _LOGGER.debug("binary_sensor::async_setup_platform")
-
-    if discovery_info is None:
-        return
+    _LOGGER.debug("async_setup_entry: called")
 
     binary_sensors = []
+    for binary_sensor_type in config_entry.data[CONF_RESOURCES]:
+        if binary_sensor_type in BINARY_SENSORS:
+            _LOGGER.debug("async_setup_entry: host=%s setup for %s", config_entry.data[CONF_HOST], binary_sensor_type)
+            binary_sensors.append(DdwrtBinarySensor(
+                hass.data[DOMAIN][config_entry.data[CONF_HOST]]['entity'],
+                config_entry.data[CONF_NAME],
+                binary_sensor_type,
+            )
+    )
 
-    for router in hass.data[DATA_KEY]:
-        for sensor_type in discovery_info:
-            binary_sensors.append(DdwrtBinarySensor(router, sensor_type))
-            _LOGGER.debug("DD-WRT: added binary sensor %s", sensor_type)
+    async_add_entities(binary_sensors, True)
+    
 
-    async_add_entities(binary_sensors)
-
-
-class DdwrtBinarySensor(BinarySensorDevice):
+class DdwrtBinarySensor(BinarySensorEntity):
     """Representation of a ddwrt binary sensor."""
 
-    def __init__(self, api, sensor_type):
+    def __init__(self, api, routername, binary_sensor_type):
         """Initialize the binary sensor."""
 
         _LOGGER.debug("DdwrtBinarySensor::__init__")
 
         self._api = api
-        self._sensor_type = sensor_type
+        self._binary_sensor_type = binary_sensor_type
 
-        self._name = '{} {}'.format(self._api._name, self._sensor_type)
-        self._device_class = BINARY_SENSORS[self._sensor_type][_CLASS]
-        self._icon = BINARY_SENSORS[self._sensor_type][_ICON]
-        self._icon_off = BINARY_SENSORS[self._sensor_type][_ICON_OFF]
+        self._device_class = BINARY_SENSORS[self._binary_sensor_type][ATTR_DEVICE_CLASS]
+        self._host = self._api._host
+        self._icon = BINARY_SENSORS[self._binary_sensor_type][ATTR_ICON]
+        self._icon_off = BINARY_SENSORS[self._binary_sensor_type][ATTR_ICON_OFF]
+        self._friendly_name = BINARY_SENSORS[self._binary_sensor_type][ATTR_NAME]
+        self._routername = routername
+        self._unique_id = '{}_{}'.format(self._host, self._binary_sensor_type)
  
     async def async_update(self):
-        """Fetch status from asuswrt."""
+        """Fetch status from DD-WRT."""
 
-        _LOGGER.debug("DdwrtBinarySensor::async_update")
-
-        self._api.update_sensor_data()
+#        _LOGGER.debug("DdwrtSensor::async_update for %s", self._binary_sensor_type)
 
     async def async_added_to_hass(self):
         """Client entity created."""
 
-        _LOGGER.debug("DdwrtBinarySensor::async_added_to_hass %s", self._sensor_type)
+        _LOGGER.debug("DdwrtBinarySensor::async_added_to_hass %s", self._binary_sensor_type)
+
+    @property
+    def device_info(self):
+        """Return the device info."""
+        result = {
+            ATTR_FRIENDLY_NAME: self._friendly_name,
+            "identifiers": {(DOMAIN, self._host)},
+            "manufacturer": self._api.results["router_manufacturer"],
+            "model": self._api.results["router_model"],
+            ATTR_NAME: self._routername,
+            "via_device": (DOMAIN),
+        }
+        _LOGGER.debug("DdwrtBinarySensor::device_info result=%s", result)
+        return result
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return self._name
+        return self._binary_sensor_type
 
     @property
     def device_class(self):
@@ -85,7 +105,7 @@ class DdwrtBinarySensor(BinarySensorDevice):
     @property
     def icon(self):
         """Return the mdi icon of the sensor."""
-        if self._api.results[self._sensor_type]:
+        if self._api.results[self._binary_sensor_type]:
             return self._icon
         else:
             return self._icon_off
@@ -93,10 +113,15 @@ class DdwrtBinarySensor(BinarySensorDevice):
     @property
     def is_on(self):
         """Return true if the binary sensor is on."""
-        return self._api.results[self._sensor_type]
+        return self._api.results[self._binary_sensor_type]
 
     @property
     def state(self):
         """Return the state of the binary sensor."""
-        return self._api.results[self._sensor_type]
+        return self._api.results[self._binary_sensor_type]
+
+    @property
+    def unique_id(self):
+        """Return the unique ID of the sensor."""
+        return self._unique_id
 

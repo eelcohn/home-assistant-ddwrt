@@ -1,0 +1,28 @@
+pppoe_connect:
+  description: Connects the PPPoE WAN interface.
+  fields:
+    host:
+      description: Hostname or IP address of the router.
+      example: 192.168.1.1
+
+pppoe_disconnect:
+  description: Disconnects the PPPoE WAN interface.
+  fields:
+    host:
+      description: Hostname or IP address of the router.
+      example: 192.168.1.1
+
+run_command:
+  description: Run command.
+  fields:
+    host:
+      description: Hostname or IP address of the router.
+      example: 192.168.1.1
+
+reboot:
+  description: Reboot router.
+  fields:
+    host:
+      description: Hostname or IP address of the router.
+      example: 192.168.1.1
+
