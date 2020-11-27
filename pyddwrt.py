@@ -493,9 +493,9 @@ class DDWrt:
             if len(elements) % 4 == 0:
                 items_per_element = 4
                 interface = None
-            else if len(elements) % 5 == 0:
+            elif len(elements) % 5 == 0:
                 items_per_element = 5
-            else
+            else:
                 _LOGGER.warning("update_lan_data(): invalid number of elements in arp_table (expected 4 or 5, found %i)", len(elements))
 
             for i in range(0, len(elements), items_per_element):
@@ -546,18 +546,19 @@ class DDWrt:
 
             # PPPoE elements: Interface | Username | Local IP
             if (len(elements) != 0) and ((len(elements) % 3) == 0):
-            for i in range(0, len(elements), 3):
-                self.clients_pppoe.update( {
-                    elements[i + 2]: {
-                        "name": elements[i + 1],
-                        "type": CONF_TRACK_PPPOE,
-                        "interface": elements[i],
-                        "username": elements[i + 1],
-                        "local_ip": elements[i + 2]
+                for i in range(0, len(elements), 3):
+                    self.clients_pppoe.update( {
+                        elements[i + 2]: {
+                            "name": elements[i + 1],
+                            "type": CONF_TRACK_PPPOE,
+                            "interface": elements[i],
+                            "username": elements[i + 1],
+                            "local_ip": elements[i + 2]
+                       }
                     }
-                }
-            )
-            _LOGGER.debug("DDWrt.update_lan_data: PPPoE clients: %s", self.clients_pppoe)
+                )
+
+        _LOGGER.debug("DDWrt.update_lan_data: PPPoE clients: %s", self.clients_pppoe)
 
         # Get clients from PPTP leases
         active_clients = self.data.pop("pptp_leases", None)
@@ -567,19 +568,20 @@ class DDWrt:
 
             # PPTP elements: Interface | Username | Local IP | Remote IP
             if (len(elements) != 0) and ((len(elements) % 4) == 0):
-            for i in range(0, len(elements), 4):
-                self.clients_pptp.update( {
-                    elements[i + 2]: {
-                        "name": elements[i + 1],
-                        "type": CONF_TRACK_PPTP,
-                        "interface": elements[i],
-                        "username": elements[i + 1],
-                        "local_ip": elements[i + 2],
-                        "remote_ip": elements[i + 3]
+                for i in range(0, len(elements), 4):
+                    self.clients_pptp.update( {
+                        elements[i + 2]: {
+                            "name": elements[i + 1],
+                            "type": CONF_TRACK_PPTP,
+                            "interface": elements[i],
+                            "username": elements[i + 1],
+                            "local_ip": elements[i + 2],
+                            "remote_ip": elements[i + 3]
+                        }
                     }
-                }
-             )
-            _LOGGER.debug("DDWrt.update_lan_data: PPTP clients: %s", self.clients_pptp)
+                 )
+
+        _LOGGER.debug("DDWrt.update_lan_data: PPTP clients: %s", self.clients_pptp)
 
         del self.data["uptime"]
         del self.data["ipinfo"]
@@ -615,23 +617,24 @@ class DDWrt:
 
             # UPNP forwards:  WAN start port-WAN end port>LAN IP address:LAN start port-LAN end port | Protocol | Enabled | Name
             if (len(elements) != 0) and ((len(elements) % 4) == 0):
-            for i in range(0, len(elements), 4):
-                if elements[i] != '':
-                    upnp_temp = re.split('[->:]+', elements[i])
-                    self.upnp_forwards.update( {
-                        elements[i + 3]: {
-                            "name": elements[i + 3],
-                            "wan_port_start": upnp_temp[0],
-                            "wan_port_end": upnp_temp[1],
-                            "lan_port_start": upnp_temp[3],
-                            "lan_port_end": upnp_temp[4],
-                            "lan_ip": upnp_temp[2],
-                            "protocol": elements[i + 1],
-                            "enabled": elements[i + 2],
+                for i in range(0, len(elements), 4):
+                    if elements[i] != '':
+                        upnp_temp = re.split('[->:]+', elements[i])
+                        self.upnp_forwards.update( {
+                            elements[i + 3]: {
+                                "name": elements[i + 3],
+                                "wan_port_start": upnp_temp[0],
+                                "wan_port_end": upnp_temp[1],
+                                "lan_port_start": upnp_temp[3],
+                                "lan_port_end": upnp_temp[4],
+                                "lan_ip": upnp_temp[2],
+                                "protocol": elements[i + 1],
+                                "enabled": elements[i + 2],
+                            }
                         }
-                    }
-            )
-            _LOGGER.debug("DDWrt.update_upnp_data: UPNP forwards: %s", self.upnp_forwards)
+                )
+
+        _LOGGER.debug("DDWrt.update_upnp_data: UPNP forwards: %s", self.upnp_forwards)
 
         del self.data["uptime"]
         del self.data["ipinfo"]
