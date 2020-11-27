@@ -1,3 +1,8 @@
+v0.9.3:
+* update_wireless_data(): Added guards against missing/malformed active_wireless or active_wds parameters
+* update_lan_data(): Added guard against missing/malformed arp_table, dhcp_leases, pppoe_leases or pptp_leases parameters
+* update_upnp_data(): Added guards against missing/malformed upnp_forwards parameters
+
 v0.9.2:
 * Added router_model variable to results
 * Added generic self._get_parameter() function

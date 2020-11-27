@@ -380,58 +380,60 @@ class DDWrt:
 
 
         # Get wireless clients
-        active_clients = self.data.pop("active_wireless")
+        active_clients = self.data.pop("active_wireless", None)
 
         if active_clients:
-            elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
-
-            # Wireless elements: MAC Address | Radioname | Interface | Uptime | Tx rate | Rx rate | Info | Signal | Noise | SNR | Signal Quality
             self.clients_wireless = {}
-            for i in range(0, len(elements), 11):
-                self.clients_wireless.update( {
-                    elements[i]: {
-                        "name": elements[i + 1],
-                        "type": CONF_TRACK_WIRELESS,
-                        "ap_mac": self.results["wl_mac"],
-                        "radioname": elements[i + 1],
-                        "interface": elements[i + 2],
-                        "uptime": elements[i + 3],
-                        "tx_rate": elements[i + 4],
-                        "rx_rate": elements[i + 5],
-                        "info": elements[i + 6],
-                        "signal": elements[i + 7],
-                        "noise": elements[i + 8],
-                        "snr": elements[i + 9],
-                        "signal_quality": elements[i + 10],
+            elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
+            if (len(elements) != 0) and ((len(elements) % 11) == 0):
+                # Wireless elements: MAC Address | Radioname | Interface | Uptime | Tx rate | Rx rate | Info | Signal | Noise | SNR | Signal Quality
+                for i in range(0, len(elements), 11):
+                    self.clients_wireless.update( {
+                        elements[i]: {
+                            "name": elements[i + 1],
+                            "type": CONF_TRACK_WIRELESS,
+                            "ap_mac": self.results["wl_mac"],
+                            "radioname": elements[i + 1],
+                            "interface": elements[i + 2],
+                            "uptime": elements[i + 3],
+                            "tx_rate": elements[i + 4],
+                            "rx_rate": elements[i + 5],
+                            "info": elements[i + 6],
+                            "signal": elements[i + 7],
+                            "noise": elements[i + 8],
+                            "snr": elements[i + 9],
+                            "signal_quality": elements[i + 10],
+                        }
                     }
-                }
-            )
-            _LOGGER.debug("DDWrt.update_wireless_data: Wireless clients: %s", self.clients_wireless)
+                )
+
+        _LOGGER.debug("DDWrt.update_wireless_data: Wireless clients: %s", self.clients_wireless)
 
         # Get WDS clients
-        active_clients = self.data.pop("active_wds")
+        active_clients = self.data.pop("active_wds", None)
 
         if active_clients:
-            elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
-
-            # WDS elements: MAC Address | Interface | Description | Signal | Noise | SNR | Signal Quality
             self.clients_wds = {}
-            for i in range(0, len(elements), 7):
-                _LOGGER.info("interface=%s", elements[i+4])
-                self.clients_wds.update( {
-                    elements[i]: {
-                        "name": elements[i + 2],
-                        "type": CONF_TRACK_WDS,
-                        "interface": elements[i + 1],
-                        "description": elements[i + 2],
-                        "signal": elements[i + 3],
-                        "noise": elements[i + 4],
-                        "snr": elements[i + 5],
-                        "signal_quality": elements[i + 6],
+            elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
+            if (len(elements) != 0) and ((len(elements) % 7) == 0):
+                # WDS elements: MAC Address | Interface | Description | Signal | Noise | SNR | Signal Quality
+                for i in range(0, len(elements), 7):
+                    _LOGGER.info("interface=%s", elements[i+4])
+                    self.clients_wds.update( {
+                        elements[i]: {
+                            "name": elements[i + 2],
+                            "type": CONF_TRACK_WDS,
+                            "interface": elements[i + 1],
+                            "description": elements[i + 2],
+                            "signal": elements[i + 3],
+                            "noise": elements[i + 4],
+                            "snr": elements[i + 5],
+                            "signal_quality": elements[i + 6],
+                        }
                     }
-                }
-            )
-            _LOGGER.debug("DDWrt.update_wireless_data: WDS clients: %s", self.clients_wds)
+                )
+
+        _LOGGER.debug("DDWrt.update_wireless_data: WDS clients: %s", self.clients_wds)
 
         del self.data["uptime"]
         del self.data["ipinfo"]
@@ -480,7 +482,7 @@ class DDWrt:
         self._get_parameter("lan_proto", "lan_proto")
 
         # Get clients from ARP table
-        active_clients = self.data.pop("arp_table")
+        active_clients = self.data.pop("arp_table", None)
         if active_clients:
             elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
 
@@ -490,13 +492,14 @@ class DDWrt:
             # Check if this specific router returns the interface in the ARP list
             if len(elements) % 4 == 0:
                 items_per_element = 4
-            else:
+                interface = None
+            else if len(elements) % 5 == 0:
                 items_per_element = 5
+            else
+                _LOGGER.warning("update_lan_data(): invalid number of elements in arp_table (expected 4 or 5, found %i)", len(elements))
 
             for i in range(0, len(elements), items_per_element):
-                if items_per_element == 4:
-                    interface = None
-                else:
+                if items_per_element == 5:
                     interface = elements[i + 4]
 
                 self.clients_arp.update( {
@@ -510,35 +513,39 @@ class DDWrt:
                     }
                 }
             )
-            _LOGGER.debug("DDWrt.update_lan_data: ARP clients: %s", self.clients_arp)
+
+        _LOGGER.debug("DDWrt.update_lan_data: ARP clients: %s", self.clients_arp)
 
         # Get clients from DHCP leases
-        active_clients = self.data.pop("dhcp_leases")
+        active_clients = self.data.pop("dhcp_leases", None)
         if active_clients:
+            self.clients_dhcp = {}
             elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
 
             # DHCP elements: Hostname | IP Address | MAC Address | Lease Expiration
-            self.clients_dhcp = {}
-            for i in range(0, len(elements), 5):
-                self.clients_dhcp.update( {
-                    elements[i + 2]: {
-                        "name": elements[i],
-                        "type": CONF_TRACK_DHCP,
-                        "ip": elements[i + 1],
-                        "hostname": elements[i],
-                        "lease_expiration": elements[i + 3]
+            if (len(elements) != 0) and ((len(elements) % 5) == 0):
+                for i in range(0, len(elements), 5):
+                    self.clients_dhcp.update( {
+                        elements[i + 2]: {
+                            "name": elements[i],
+                            "type": CONF_TRACK_DHCP,
+                            "ip": elements[i + 1],
+                            "hostname": elements[i],
+                            "lease_expiration": elements[i + 3]
+                        }
                     }
-                }
-            )
-            _LOGGER.debug("DDWrt.update_lan_data: DHCP clients: %s", self.clients_dhcp)
+                )
+
+        _LOGGER.debug("DDWrt.update_lan_data: DHCP clients: %s", self.clients_dhcp)
 
         # Get clients from PPPoE leases
-        active_clients = self.data.pop("pppoe_leases")
+        active_clients = self.data.pop("pppoe_leases", None)
         if active_clients:
+            self.clients_pppoe = {}
             elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
 
             # PPPoE elements: Interface | Username | Local IP
-            self.clients_pppoe = {}
+            if (len(elements) != 0) and ((len(elements) % 3) == 0):
             for i in range(0, len(elements), 3):
                 self.clients_pppoe.update( {
                     elements[i + 2]: {
@@ -553,12 +560,13 @@ class DDWrt:
             _LOGGER.debug("DDWrt.update_lan_data: PPPoE clients: %s", self.clients_pppoe)
 
         # Get clients from PPTP leases
-        active_clients = self.data.pop("pptp_leases")
+        active_clients = self.data.pop("pptp_leases", None)
         if active_clients:
+            self.clients_pptp = {}
             elements = [item.strip().strip("'") for item in active_clients.strip().split(",")]
 
             # PPTP elements: Interface | Username | Local IP | Remote IP
-            self.clients_pptp = {}
+            if (len(elements) != 0) and ((len(elements) % 4) == 0):
             for i in range(0, len(elements), 4):
                 self.clients_pptp.update( {
                     elements[i + 2]: {
@@ -600,12 +608,13 @@ class DDWrt:
         upnp_data = self.data.pop("upnp_forwards", None)
 
         if upnp_data:
+            self.upnp_forwards = {}
             elements = [item.strip().strip("'") for item in upnp_data.strip().split(",")]
 
             _LOGGER.debug("DDWrt.update_upnp_data: UPNP len=%s elements=%s", len(elements), elements)
 
             # UPNP forwards:  WAN start port-WAN end port>LAN IP address:LAN start port-LAN end port | Protocol | Enabled | Name
-            self.upnp_forwards = {}
+            if (len(elements) != 0) and ((len(elements) % 4) == 0):
             for i in range(0, len(elements), 4):
                 if elements[i] != '':
                     upnp_temp = re.split('[->:]+', elements[i])

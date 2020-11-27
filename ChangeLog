@@ -1,3 +1,6 @@
+v1.1.1:
+* Updated pyddwrt to v0.9.3
+
 v1.1.0:
 * Added configuration by GUI entity register (config_flow)
 * Added detection of unhandled missing and/or extra fields in DD-WRT data
