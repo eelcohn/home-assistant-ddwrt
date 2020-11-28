@@ -406,6 +406,8 @@ class DDWrt:
                         }
                     }
                 )
+            else:
+                _LOGGER.warning("update_wireless_data(): invalid number of elements in active_wireless (expected 11, found %i)", len(elements))
 
         _LOGGER.debug("DDWrt.update_wireless_data: Wireless clients: %s", self.clients_wireless)
 
@@ -432,6 +434,8 @@ class DDWrt:
                         }
                     }
                 )
+            else:
+                _LOGGER.warning("update_wireless_data(): invalid number of elements in active_wds (expected 7, found %i)", len(elements))
 
         _LOGGER.debug("DDWrt.update_wireless_data: WDS clients: %s", self.clients_wds)
 
@@ -535,6 +539,8 @@ class DDWrt:
                         }
                     }
                 )
+            else:
+                _LOGGER.warning("update_lan_data(): invalid number of elements in dhcp_leases (expected 5, found %i)", len(elements))
 
         _LOGGER.debug("DDWrt.update_lan_data: DHCP clients: %s", self.clients_dhcp)
 
@@ -557,6 +563,8 @@ class DDWrt:
                        }
                     }
                 )
+            else:
+                _LOGGER.warning("update_lan_data(): invalid number of elements in pppoe_leases (expected 3, found %i)", len(elements))
 
         _LOGGER.debug("DDWrt.update_lan_data: PPPoE clients: %s", self.clients_pppoe)
 
@@ -580,6 +588,8 @@ class DDWrt:
                         }
                     }
                  )
+            else:
+                _LOGGER.warning("update_lan_data(): invalid number of elements in pptp_leases (expected 4, found %i)", len(elements))
 
         _LOGGER.debug("DDWrt.update_lan_data: PPTP clients: %s", self.clients_pptp)
 
@@ -633,6 +643,8 @@ class DDWrt:
                             }
                         }
                 )
+            else:
+                _LOGGER.warning("update_upnp_data(): invalid number of elements in pptp_leases (expected 4, found %i)", len(elements))
 
         _LOGGER.debug("DDWrt.update_upnp_data: UPNP forwards: %s", self.upnp_forwards)
 
