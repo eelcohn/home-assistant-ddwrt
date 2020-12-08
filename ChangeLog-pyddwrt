@@ -1,3 +1,6 @@
+v0.9.4:
+* Fixed correctly processing wl_ack when it's set to N/A
+
 v0.9.3:
 * update_wireless_data(): Added guards against missing/malformed active_wireless or active_wds parameters
 * update_lan_data(): Added guard against missing/malformed arp_table, dhcp_leases, pppoe_leases or pptp_leases parameters
