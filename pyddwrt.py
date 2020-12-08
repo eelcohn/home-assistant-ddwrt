@@ -11,7 +11,7 @@ from requests import Session
 from requests.exceptions import Timeout, ConnectionError, SSLError
 
 _LOGGER = logging.getLogger(__name__)
-_VERSION = "0.9.2"
+_VERSION = "0.9.4"
 _X_REQUESTED_WITH = __name__ + "-" + _VERSION
 HTTP_X_REQUESTED_WITH = "X-Requested-With"
 
