@@ -338,7 +338,7 @@ class DDWrt:
 
         # Get wireless info
         wl_ack = self.data.pop("wl_ack")
-        if wl_ack and not wl_ack == "":
+        if wl_ack and not wl_ack == "" and not wl_ack == "N/A":
             self.results.update({"wl_ack_timing": wl_ack.split("&#181;")[0]})
             self.results.update({"wl_ack_distance": wl_ack.split("(")[1].split("m")[0]})
         else:
