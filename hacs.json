@@ -1,0 +1,11 @@
+{
+	"name": "DD-WRT integration for Home Assistant",
+	"content_in_root": false,
+	"render_readme": true,
+	"iot_class": "Cloud Polling",
+	"domains": [
+		"binary_sensor",
+		"binary_device_tracker",
+		"sensor"
+	]
+}
