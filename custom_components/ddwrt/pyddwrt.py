@@ -11,7 +11,7 @@ from requests import Session
 from requests.exceptions import Timeout, ConnectionError, SSLError
 
 _LOGGER = logging.getLogger(__name__)
-_VERSION = "0.9.2"
+_VERSION = "0.9.4"
 _X_REQUESTED_WITH = __name__ + "-" + _VERSION
 HTTP_X_REQUESTED_WITH = "X-Requested-With"
 
@@ -338,7 +338,7 @@ class DDWrt:
 
         # Get wireless info
         wl_ack = self.data.pop("wl_ack")
-        if wl_ack and not wl_ack == "":
+        if wl_ack and not wl_ack == "" and not wl_ack == "N/A":
             self.results.update({"wl_ack_timing": wl_ack.split("&#181;")[0]})
             self.results.update({"wl_ack_distance": wl_ack.split("(")[1].split("m")[0]})
         else:

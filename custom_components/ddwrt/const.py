@@ -20,7 +20,7 @@ from homeassistant.const import (
     VOLT,
 )
 
-_VERSION = "1.1.1"
+_VERSION = "1.1.2"
 
 ATTRIBUTION = "Data provided by DD-WRT router"
 
