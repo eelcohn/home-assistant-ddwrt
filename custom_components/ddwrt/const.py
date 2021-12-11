@@ -17,7 +17,7 @@ from homeassistant.const import (
     TEMP_CELSIUS,
     TIME_MICROSECONDS,
     TIME_MINUTES,
-    VOLT,
+    ELECTRIC_POTENTIAL_VOLT,
 )
 
 _VERSION = "1.1.2"
@@ -307,7 +307,7 @@ SENSORS = {
     },
     "voltage": {
         ATTR_NAME: "Voltage",
-        ATTR_UNIT_OF_MEASUREMENT: VOLT,
+        ATTR_UNIT_OF_MEASUREMENT: ELECTRIC_POTENTIAL_VOLT,
         ATTR_ICON: "mdi:current-dc",
         ATTR_DEVICE_CLASS: None,
     },
