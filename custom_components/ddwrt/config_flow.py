@@ -151,23 +151,26 @@ class DDWRTFlowHandler(config_entries.ConfigFlow):
             )
 
             try:
-                valid_router = router.update_about_data()
+                 valid_router = await self.hass.async_add_executor_job(router.update_about_data)
 #            except SSLError:
 #                return await self._show_setup_form({CONF_HOST: 'ssl_error'})
             except DDWrt.ExceptionSelfSigned:
-                _LOGGER.debug("DDWRTFlowHandler::async_step_user SelfSigned")
+                _LOGGER.error("DDWRTFlowHandler::async_step_user SelfSigned")
                 errors["base"] = "ssl_selfsigned"
-            except CannotConnect:
-                _LOGGER.debug("DDWRTFlowHandler::async_step_user ConnectionError")
-                errors["base"] = "connection_error"
+            except ConnectionRefusedError:
+                _LOGGER.error("DDWRTFlowHandler::async_step_user ConnectionRefusedError")
+                errors["base"] = "connection_refused_error"
+#            except CannotConnect:
+#                _LOGGER.debug("DDWRTFlowHandler::async_step_user ConnectionError")
+#                errors["base"] = "connection_error"
             except DDWrt.ExceptionAuthenticationError:
-                _LOGGER.debug("DDWRTFlowHandler::async_step_user AuthenticationError")
+                _LOGGER.error("DDWRTFlowHandler::async_step_user AuthenticationError")
                 errors["base"] = "invalid_credentials"
             except DDWrt.ExceptionTimeout:
-                _LOGGER.debug("DDWRTFlowHandler::async_step_user Timeout")
+                _LOGGER.error("DDWRTFlowHandler::async_step_user Timeout")
                 errors["base"] = "timeout"
             except Exception as e:
-                _LOGGER.debug("DDWRTFlowHandler::async_step_user update_about_data exception unknown_error: %s", str(e))
+                _LOGGER.error("DDWRTFlowHandler::async_step_user update_about_data exception unknown_error: %s", str(e))
                 errors["base"] = "unknown_error"
             else:
                 _LOGGER.debug("DDWRTFlowHandler::async_step_user update_about_data returned %s", valid_router)
