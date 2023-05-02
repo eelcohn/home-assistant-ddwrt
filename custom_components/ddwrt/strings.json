@@ -30,7 +30,7 @@
       "ssl_error": "Can't verify SSL certificate.",
       "ssl_selfsigned": "Can't verify self-signed certificate.",
       "connection_error": "Connection error while attempting to connect to router.",
-      "connection_refused_error": "Connection refused while attempting to connect -- wrong port? no SSL?",
+      "connection_refused_error": "Connection refused while attempting to connect -- please check the port number and SSL setting",
       "timeout": "Connection timed out. Please check the hostname or IP address.",
       "unknown_error": "Unknown error while attempting to connect to router."
     }
