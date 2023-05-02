@@ -101,3 +101,5 @@ ddwrt:
 
 ### Support
 Support for this module can be requested by opening an [issue](https://github.com/eelcohn/home-assistant-ddwrt/issues). More info can be found in [this thread](https://community.home-assistant.io/t/custom-component-for-dd-wrt-routers/162423)
+
+Due to lack of time it might take a long time for me to give support.
