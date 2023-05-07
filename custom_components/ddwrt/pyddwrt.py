@@ -355,6 +355,7 @@ class DDWrt:
             self.results.update({"wl_radio": True if wl_radio[2]  == "On" else False})
         except:
             _LOGGER.error("Unknown wireless radio status, please report this to the author: %s", wl_radio)
+            self.results.update({"wl_radio": None})
         self.results.update({"wl_rate": self.data.pop("wl_rate").split(" ")[0]})
         self._get_parameter("wl_ssid", "wl_ssid")
         self.results.update({"wl_xmit": self.data.pop("wl_xmit").split(" ")[0]})
